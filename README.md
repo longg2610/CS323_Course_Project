@@ -1,1 +1,4 @@
 # CS323_Course_Project
+
+Sealfon's is input perturbation i.e. add Laplace noise to edge weights
+Our strategy is now as follows: we sample a subset S ⊆ V of a given size s. Vertices in S will serve asintermediate vertices for long paths. We compute the shortest path distances between every pair of vertices in Susing the output-perturbation algorithm, whose error is now only ˜O(s2/ϵ). We also use the input-perturbationalgorithm to compute shortest t-hop path distances between all pairs of vertices in V ; this has an error of ˜O(t/ϵ).Finally, for each pair u, v, we compute the distance between them by taking the minimum of (i) the shortest t-hoppath distance between u and v and (ii) the minimum over all w, z ∈ S of the sum of the shortest t-hop pathdistance between u, w, the shortest path distance between w, z and the shortest t-hop path distance between z, v
