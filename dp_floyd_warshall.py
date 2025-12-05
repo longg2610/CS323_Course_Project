@@ -26,6 +26,11 @@ def dp_floyd_warshall_input_pertubation(graph, eps = 1.0):
     # Initialize distances and paths
     distances = [row[:] for row in graph]  # Copy of the distance matrix
     
+    for i in range(num_vertices):
+        for j in range(num_vertices):
+            if i != j:
+                noise = np.random.laplace(0, 1/eps)
+                distances[i][j] += noise
     
     # Floyd-Warshall algorithm
     for k in range(num_vertices):
@@ -64,6 +69,11 @@ def dp_floyd_warshall_output_pertubation(graph, eps = 1.0):
                 if distances[i][k] + distances[k][j] < distances[i][j]:
                     distances[i][j] = distances[i][k] + distances[k][j]
     
+    for i in range(num_vertices):
+        for j in range(num_vertices):
+            if i != j:
+                noise = np.random.laplace(0, 1/eps)
+                distances[i][j] += noise
     
     
     return distances

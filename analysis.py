@@ -11,15 +11,15 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 
-def run_shortest_paths(graph, algorithm):
+def run_shortest_paths(graph, algorithm, eps=1.0):
     if algorithm == "floyd_warshall":
         return floyd_warshall(graph)
     
     elif algorithm == "dp_floyd_warshall_input":
-        return dp_floyd_warshall_input_pertubation(graph)
+        return dp_floyd_warshall_input_pertubation(graph, eps)
     
     elif algorithm == "dp_floyd_warshall_output":
-        return dp_floyd_warshall_output_pertubation(graph)
+        return dp_floyd_warshall_output_pertubation(graph, eps)
     
     # elif algorithm == "chen":
         # return chen_algorithm(graph)
@@ -34,12 +34,11 @@ def compute_accuracy(true_distances, calculated_distances):
     return accuracy, max_accuracy
 
 
-def compute_time(graph, algorithm):
+def compute_time(graph, algorithm, eps=1.0):
     start = time.time()
-    distances = run_shortest_paths(graph, algorithm)
+    distances = run_shortest_paths(graph, algorithm, eps)
     end = time.time()
     
-
     return end - start, distances
 
 
@@ -51,7 +50,7 @@ def read_graph_from_file(file_path):
     with open(file_path, "r") as f:
         for line in f:
             u, v, w = line.split()
-            edges.append((u, v, int(w)))
+            edges.append((u, v, float(w)))
 
     # Build set of nodes
     nodes = sorted({u for u, v, w in edges} | {v for u, v, w in edges})
@@ -59,19 +58,13 @@ def read_graph_from_file(file_path):
 
     # Initialize adjacency matrix (0 = no edge)
     n = len(nodes)
-    adj = [[0 for _ in range(n)] for _ in range(n)]
+    adj = [[0.0 for _ in range(n)] for _ in range(n)]
 
     # Fill matrix (undirected)
     for u, v, w in edges:
         i, j = index[u], index[v]
-        adj[i][j] = w
-        adj[j][i] = w  # remove if directed
-
-    # Print results
-    print("Nodes:", nodes)
-    print("Adjacency matrix:")
-    for row in adj:
-        print(row)
+        adj[i][j] = float(w)
+        adj[j][i] = float(w)  # remove if directed
         
     return adj
 
@@ -79,94 +72,130 @@ def read_graph_from_file(file_path):
 def main():
     
     num_runs = 5
-    graph = read_graph_from_file("")
+    epsilon_values = [0.01, 0.1, 0.5, 1.0, 2.0, 5.0, 10.0]
+    graph = read_graph_from_file("./data/graph_300_100.txt")
     
-    # Floyd-Warshall 
-        
-    floyd_warshall_runtimes = []
-    floyd_warshall_accuracies = []
+    # Get true distances (non-private Floyd-Warshall)
     true_distances = floyd_warshall(graph)
     
-    for _ in range(num_runs):
-        runtime, distances = compute_time(graph, "floyd_warshall")
-        accuracy = compute_accuracy(true_distances, distances)
-        floyd_warshall_runtimes.append(runtime)
-        floyd_warshall_accuracies.append(accuracy)
+    # Storage for results across epsilon values
+    floyd_warshall_results = {'mean_error': [], 'max_error': [], 'runtime': []}
+    dp_input_results = {'mean_error': [], 'max_error': [], 'runtime': []}
+    dp_output_results = {'mean_error': [], 'max_error': [], 'runtime': []}
     
+    # Run experiments for each epsilon value
+    for eps in epsilon_values:
+        print(f"\nRunning experiments for epsilon = {eps}")
+        
+        # Floyd-Warshall (baseline - epsilon doesn't affect it but we pass it for consistency)
+        fw_runtimes = []
+        fw_mean_errors = []
+        fw_max_errors = []
+        
+        for _ in range(num_runs):
+            runtime, distances = compute_time(graph, "floyd_warshall", eps)
+            mean_err, max_err = compute_accuracy(true_distances, distances)
+            fw_runtimes.append(runtime)
+            fw_mean_errors.append(mean_err)
+            fw_max_errors.append(max_err)
+        
+        floyd_warshall_results['mean_error'].append(np.mean(fw_mean_errors))
+        floyd_warshall_results['max_error'].append(np.mean(fw_max_errors))
+        floyd_warshall_results['runtime'].append(np.mean(fw_runtimes))
+        
+        # DP Floyd-Warshall with Input Perturbation
+        dp_input_runtimes = []
+        dp_input_mean_errors = []
+        dp_input_max_errors = []
+        
+        for _ in range(num_runs):
+            runtime, distances = compute_time(graph, "dp_floyd_warshall_input", eps)
+            mean_err, max_err = compute_accuracy(true_distances, distances)
+            dp_input_runtimes.append(runtime)
+            dp_input_mean_errors.append(mean_err)
+            dp_input_max_errors.append(max_err)
+        
+        dp_input_results['mean_error'].append(np.mean(dp_input_mean_errors))
+        dp_input_results['max_error'].append(np.mean(dp_input_max_errors))
+        dp_input_results['runtime'].append(np.mean(dp_input_runtimes))
+        
+        # DP Floyd-Warshall with Output Perturbation
+        dp_output_runtimes = []
+        dp_output_mean_errors = []
+        dp_output_max_errors = []
+        
+        for _ in range(num_runs):
+            runtime, distances = compute_time(graph, "dp_floyd_warshall_output", eps)
+            mean_err, max_err = compute_accuracy(true_distances, distances)
+            dp_output_runtimes.append(runtime)
+            dp_output_mean_errors.append(mean_err)
+            dp_output_max_errors.append(max_err)
+        
+        dp_output_results['mean_error'].append(np.mean(dp_output_mean_errors))
+        dp_output_results['max_error'].append(np.mean(dp_output_max_errors))
+        dp_output_results['runtime'].append(np.mean(dp_output_runtimes))
     
-    # DP Floyd-Warshall with Input Perturbation
-    dp_floyd_warshall_input_runtimes = []
-    dp_floyd_warshall_input_accuracies = []
+    # Create the three line plots
+    fig, axes = plt.subplots(1, 3, figsize=(18, 5))
     
-    for _ in range(num_runs):
-        runtime, distances = compute_time(graph, "dp_floyd_warshall_input")
-        accuracy = compute_accuracy(true_distances, distances)
-        dp_floyd_warshall_input_runtimes.append(runtime)
-        dp_floyd_warshall_input_accuracies.append(accuracy)
+    # Plot 1: Epsilon vs Mean Error
+    axes[0].plot(epsilon_values, floyd_warshall_results['mean_error'], 
+                 marker='o', label='Floyd-Warshall', linewidth=2)
+    axes[0].plot(epsilon_values, dp_input_results['mean_error'], 
+                 marker='s', label='DP Floyd-Warshall (Input)', linewidth=2)
+    axes[0].plot(epsilon_values, dp_output_results['mean_error'], 
+                 marker='^', label='DP Floyd-Warshall (Output)', linewidth=2)
+    axes[0].set_xlabel('Epsilon (ε)', fontsize=12)
+    axes[0].set_ylabel('Mean Error', fontsize=12)
+    axes[0].set_title('Epsilon vs Mean Error', fontsize=14, fontweight='bold')
+    axes[0].legend()
+    axes[0].grid(True, alpha=0.3)
     
-    # DP Floyd-Warshall with Output Perturbation
-    dp_floyd_warshall_output_runtimes = []
-    dp_floyd_warshall_output_accuracies = []
+    # Plot 2: Epsilon vs Max Error
+    axes[1].plot(epsilon_values, floyd_warshall_results['max_error'], 
+                 marker='o', label='Floyd-Warshall', linewidth=2)
+    axes[1].plot(epsilon_values, dp_input_results['max_error'], 
+                 marker='s', label='DP Floyd-Warshall (Input)', linewidth=2)
+    axes[1].plot(epsilon_values, dp_output_results['max_error'], 
+                 marker='^', label='DP Floyd-Warshall (Output)', linewidth=2)
+    axes[1].set_xlabel('Epsilon (ε)', fontsize=12)
+    axes[1].set_ylabel('Max Error', fontsize=12)
+    axes[1].set_title('Epsilon vs Max Error', fontsize=14, fontweight='bold')
+    axes[1].legend()
+    axes[1].grid(True, alpha=0.3)
     
-    for _ in range(num_runs):
-        runtime, distances = compute_time(graph, "dp_floyd_warshall_output")
-        accuracy = compute_accuracy(true_distances, distances)
-        dp_floyd_warshall_output_runtimes.append(runtime)
-        dp_floyd_warshall_output_accuracies.append(accuracy)
+    # Plot 3: Epsilon vs Runtime
+    axes[2].plot(epsilon_values, floyd_warshall_results['runtime'], 
+                 marker='o', label='Floyd-Warshall', linewidth=2)
+    axes[2].plot(epsilon_values, dp_input_results['runtime'], 
+                 marker='s', label='DP Floyd-Warshall (Input)', linewidth=2)
+    axes[2].plot(epsilon_values, dp_output_results['runtime'], 
+                 marker='^', label='DP Floyd-Warshall (Output)', linewidth=2)
+    axes[2].set_xlabel('Epsilon (ε)', fontsize=12)
+    axes[2].set_ylabel('Runtime (seconds)', fontsize=12)
+    axes[2].set_title('Epsilon vs Runtime', fontsize=14, fontweight='bold')
+    axes[2].legend()
+    axes[2].grid(True, alpha=0.3)
     
-    # # Chen's Algorithm
-    # chen_runtimes = []
-    # chen_accuracies = []
-    
-    # for _ in range(num_runs):
-    #     runtime, distances, paths = compute_time(graph, "chen")
-    #     accuracy = compute_accuracy(distances, paths)
-    #     chen_runtimes.append(runtime)
-    #     chen_accuracies.append(accuracy)
-
-    # Runtime plot
-    algorithms = ["floyd_warshall", "dp_floyd_warshall_input", "dp_floyd_warshall_output"]
-    avg_runtimes = [
-        np.mean(floyd_warshall_runtimes),
-        np.mean(dp_floyd_warshall_input_runtimes),
-        np.mean(dp_floyd_warshall_output_runtimes),
-    ]
-
-    plt.figure(figsize=(8, 5))
-    plt.bar(algorithms, avg_runtimes)
-    plt.ylabel("Average Runtime (seconds)")
-    plt.title("Runtime Comparison of Algorithms")
-    plt.xticks(rotation=20)
     plt.tight_layout()
+    plt.savefig('epsilon_analysis.png', dpi=300, bbox_inches='tight')
     plt.show()
-
-    # Accuracy plot (Mean vs Max)
-    mean_errors = [
-        np.mean([a[0] for a in floyd_warshall_accuracies]),
-        np.mean([a[0] for a in dp_floyd_warshall_input_accuracies]),
-        np.mean([a[0] for a in dp_floyd_warshall_output_accuracies]),
-    ]
-
-    max_errors = [
-        np.mean([a[1] for a in floyd_warshall_accuracies]),
-        np.mean([a[1] for a in dp_floyd_warshall_input_accuracies]),
-        np.mean([a[1] for a in dp_floyd_warshall_output_accuracies]),
-    ]
-
-    x = np.arange(len(algorithms))
-    width = 0.35
-
-    plt.figure(figsize=(8, 5))
-    plt.bar(x - width/2, mean_errors, width=width, label="Mean Error")
-    plt.bar(x + width/2, max_errors, width=width, label="Max Error")
-
-    plt.xticks(x, algorithms, rotation=20)
-    plt.ylabel("Error")
-    plt.title("Accuracy Comparison of Algorithms")
-    plt.legend()
-    plt.tight_layout()
-    plt.show()
-
+    
+    # Print summary statistics
+    print("\n" + "="*60)
+    print("SUMMARY STATISTICS")
+    print("="*60)
+    for i, eps in enumerate(epsilon_values):
+        print(f"\nEpsilon = {eps}")
+        print(f"  Floyd-Warshall: Mean Error = {floyd_warshall_results['mean_error'][i]:.4f}, "
+              f"Max Error = {floyd_warshall_results['max_error'][i]:.4f}, "
+              f"Runtime = {floyd_warshall_results['runtime'][i]:.4f}s")
+        print(f"  DP Input:       Mean Error = {dp_input_results['mean_error'][i]:.4f}, "
+              f"Max Error = {dp_input_results['max_error'][i]:.4f}, "
+              f"Runtime = {dp_input_results['runtime'][i]:.4f}s")
+        print(f"  DP Output:      Mean Error = {dp_output_results['mean_error'][i]:.4f}, "
+              f"Max Error = {dp_output_results['max_error'][i]:.4f}, "
+              f"Runtime = {dp_output_results['runtime'][i]:.4f}s")
 
 
 if __name__ == "__main__":
