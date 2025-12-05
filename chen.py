@@ -12,26 +12,31 @@ import copy
 import numpy as np
 
 """
+JAMES
 return the ball of radius r around vertex v in graph G. the ball is a set of vertices
+G should be a graph with the following property: if there is an edge between u and v in the original graph,
+G[u][v] = 1, otherwise G[u][v] = 0
 """
 def ball(G, v, r):
     ball = set()
 
 
-    return
+    return ball
 
 """
 return graph G with vertices in V peeled off (G.V\V)
 """
 def peel(G, V):
     n = len(G)
-    subgraph = copy.deepcopy(G)
-    for v in V:
-        for i in range(n):
-            subgraph[v][i] = -1
-        for i in range(n):
-            subgraph[i][v] = -1
+    subgraph = [[_ for _ in range(n)] for _ in range(n)]
+    for u in range(n):
+        for v in range(n):
+            if u in V or v in V:
+                subgraph[u][v] = -1
+            else:
+                subgraph[u][v] = G[u][v]
     return subgraph
+
 
 """
 return the subgraph of G with only vertices in SET V. note that V has to be subset of G.V
@@ -39,16 +44,18 @@ pruning vertices by setting their entries to -1
 """
 def subgraph(G, V):
     n = len(G)
-    subgraph = copy.deepcopy(G)
     pruned_set = []
     for i in range(n):
         if i not in V:
             pruned_set.append(i)
-    for v in pruned_set:
-        for i in range(n):
-            subgraph[v][i] = -1
-        for i in range(n):
-            subgraph[i][v] = -1
+
+    subgraph = [[_ for _ in range(n)] for _ in range(n)]
+    for u in range(n):
+        for v in range(n):
+            if u in pruned_set or v in pruned_set:
+                subgraph[u][v] = -1
+            else:
+                subgraph[u][v] = G[u][v]
     return subgraph
 
 """
@@ -71,21 +78,47 @@ def matrix_median(matrices, n):
     return mat_median
 
 """
-return shortest path distance from u to v in G. the path uses at most r red edges,
-b blue edges, and g green edges
+magical function that returns shortest path distance from u to v in G. 
+the path uses at most r red edges, b blue edges, and g green edges
 """
 def constrained_shortest_path(G, u, v, r, b, g):
 
-    return
+    return -1
 
 """
-return shortest path from u to v i.e. dist(u, v). Dijsktra
+JAMES
+return shortest path from u to v i.e. dist(u, v). (Dijsktra)
+return -1 if v is not reachable from u
 """
 def shortest_path(G, u, v):
-    return
 
+
+
+    return -1
+
+"""
+return H, the unweighted graph topology of G
+if there is an edge between u and v in G (including ones with 0 weight), the corresponding edge in H is 1
+if there is no edge between u and v in G (G[u][v] == -1), the corresponding edge in H is 0
+"""
+def get_topology(G):
+    n = len(G)
+    H = [[_ for _ in range(n)] for _ in range(n)]
+    for u in range(n):
+        for v in range(n):
+            if G[u][v] >= 0:
+                H[u][v] = 1
+            else:               # G[u][v] == -1
+                H[u][v] = 0
+    return H
+
+"""
+output apsp matrix for graph G
+G: matrix reprentation of the graph. G[u][v] is weight of the edge connecting vertices u and v. 
+G[u][v] = -1 if there's no edge between u and v
+"""
 def bounded_weights(G, epsilon):
-    V = list(range(len(G[0])))
+    V = list(range(len(G)))
     n = len(V)       # number of vertices
     A = max(map(max, G))        # maximum edge weight i.e. bound of weights
 
@@ -94,17 +127,17 @@ def bounded_weights(G, epsilon):
     R = n / ((A * epsilon * n) ** ((5 - math.sqrt(17))/2))
     L = K * (n/T)
 
-    H = G # H is G but unweighted. H is public
+    H = get_topology(G)    # H is G but unweighted. H is public
 
     iterations = []     # contains result of each of the k iterations, used to find entrywise median to improve success probability
     for k in range(1, K + 1):
-        H_prime = H
+        H_prime = copy.deepcopy(H)
         t = 0
 
         while True:
             v_t = -1
-            for i in range(len(H_prime[0])):    # for each vertex in H_prime
-                if len(ball(H_prime, v_t, 100 * R * math.log(n))) <= T:       # if the size of the ball around v_t less than T
+            for i in range(n):    # for each vertex in H_prime
+                if len(ball(H_prime, i, 100*R* math.log(n))) <= T:       # if the size of the ball around i less than T
                     v_t = i                                                 # take v_t
                     break
 
@@ -117,7 +150,7 @@ def bounded_weights(G, epsilon):
             B_t = ball(H_prime, v_t, r_t)       # set of vertices that are within distance r_t of v_t in H′
             balls.append(B_t)
 
-            H_prime = peel(H_prime, B_t)
+            H_prime = peel(H_prime, B_t)        # Peel off ball around v_t
             t += 1
         
         medians = []            # list of M_t's
@@ -138,28 +171,29 @@ def bounded_weights(G, epsilon):
                 if G[u][v] != -1:
                     G_til[u][v] = G[u][v] + np.random.laplace(0.0, scale = (3*K)/epsilon)   # add a red edge to G_til, input perturbation
         
-        # for all pairs u, v ∈ S
-        for u in range(len(S)):
-            for v in range(u+1, len(S)):
-                dist_u_v = shortest_path(G, u, v)       
+        # for all pairs u, v ∈ S (u = S[i], v = S[j]). Note: using indices is easier to enumerate pairs
+        for i in range(len(S)):
+            for j in range(i+1, len(S)):
+                dist_u_v = shortest_path(G, S[i], S[j])  # actual shortest path (use Dijkstra's or any SSSP algo)        
                 if dist_u_v != -1:                # blue edge replaces sum of every edges from u to v. it will be as if there's one single edge from u to v
                     G_til[u][v] = dist_u_v + np.random.laplace(0.0, scale = (10*K*L*L)/epsilon) # add a blue edge to G_til, output-perturbation
         
         # for each B_t
-        for i in range(len(balls)):
-            B_t = balls[i]
+        for t in range(len(balls)):
+            B_t = balls[t]
             # for all pairs u, v ∈ B_t
-            for u in range(len(B_t)):
-                for v in range(u+1, len(B_t)):
-                    M_t = medians[i]
+            for i in range(len(B_t)):
+                for j in range(i+1, len(B_t)):
+                    u = B_t[i]
+                    v = B_t[j]
+                    M_t = medians[t]
                     G_til[u][v] = M_t[u][v]     # add a green edge to G_til
 
-        output_apsp = [[-1 for _ in range(n)] for _ in range(n)]
+        output_apsp = [[_ for _ in range(n)] for _ in range(n)]
         # for all pairs u, v ∈ V 
         for u in range(n):
             for v in range(n):
-                output_apsp[u][v] = constrained_shortest_path(G_til, u, v, (100*R*math.log(n)) + (100*T)/R, 1, (100*T)/R)
+                output_apsp[u][v] = constrained_shortest_path(G_til, u, v, (100*R*math.log(n)) + (100*T)/R, 1, (100*T)/R)   # dark magic
         iterations.append(output_apsp)
     
-
     return matrix_median(iterations, n)    # return median over K iterations
