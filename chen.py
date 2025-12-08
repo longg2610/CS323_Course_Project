@@ -3,14 +3,15 @@ Error is maximum difference between an entry in the output matrix and that entry
 R: mean of an exponential distribution, R = (n) / (A*epsilon*n)**(2-sqrt(2))
 T = (n) / (A*epsilon*n)**(sqrt(2)-1)
 A: bound of edge weight
-
+todo: handle G[u][v] = G[v][u], need to be assigned in the same line and not reasssigned
 ** be careful of shallow copies **
 """
 
 import math
 import copy
 import numpy as np
-import heapq
+import random
+random.seed(36)
 
 """
 JAMES
@@ -25,7 +26,7 @@ def ball(G, v, r):
     return ball
 
 """
-return graph G with vertices in V peeled off (G.V\V)
+return graph G with vertices in V peeled off (G.V-V)
 """
 def peel(G, V):
     n = len(G)
@@ -78,15 +79,67 @@ def matrix_median(matrices, n):
 
     return mat_median
 
-"""
-magical function that returns shortest path distance from u to v in G. 
-the path uses at most r red edges, b blue edges, and g green edges
-"""
-def constrained_shortest_path(G, u, v, r, b, g):
-
-    return -1
 
 """
+recursive DFS used to enumerate all paths
+"""
+def dfs(G, u, dst, visited, path, paths, edge_color, r, b, g, rbound, bbound, gbound):
+    if r > rbound or b > bbound or g > gbound:      
+        return
+
+    if u == dst:
+        paths.append(path.copy())
+        return
+
+    n = len(G)
+    visited[u] = True
+    for v in range(n):
+        if G[u][v] != -1 and not visited[v]:
+            if edge_color[u,v] == "red":
+                dfs(G, v, dst, visited, path + [v], paths, edge_color, r + 1, b, g, rbound, bbound, gbound)
+            elif edge_color[u,v] == "blue":
+                dfs(G, v, dst, visited, path + [v], paths, edge_color, r, b + 1, g, rbound, bbound, gbound)
+            elif edge_color[u,v] == "green":
+                dfs(G, v, dst, visited, path + [v], paths, edge_color, r, b, g + 1, rbound, bbound, gbound)
+            
+    visited[u] = False  # backtrack
+    return
+
+"""
+compute total distance of a path in graph G
+"""
+def compute_dist(G, path):
+    dist = 0
+    for i in range(len(path)-1):
+        u = path[i]
+        v = path[i+1]
+        dist += G[u][v]
+    return dist
+
+"""
+magical function that returns shortest path distance from src to dst in G. 
+the path uses at most rbound red edges, bbound blue edges, and gbound green edges
+"""
+def constrained_shortest_path(G, edge_color, src, dst, rbound, bbound, gbound):
+    n = len(G)
+    visited = [False] * n
+    paths = []
+
+    # get all paths that match constraint
+    dfs(G, src, dst, visited, [src], paths, edge_color, 0, 0, 0, rbound, bbound, gbound)
+
+    # find the shortest one
+    shortest_dist = float('inf')
+    shortest_path = []
+    for path in paths:
+        dist = compute_dist(G, path)
+        if dist <= shortest_dist:
+            shortest_dist = dist
+            shortest_path = path
+    return shortest_dist, shortest_path
+    
+"""
+JAMES
 return shortest path from u to v i.e. dist(u, v). (Dijsktra)
 return -1 if v is not reachable from u
 """
@@ -195,18 +248,22 @@ def bounded_weights(G, epsilon):
         S = np.random.choice(V, size=L, replace=False)  # Construct hitting set
         G_til = [[-1 for _ in range(n)] for _ in range(n)]      # Create a weighted multigraph ˜G with vertex set V and initially no edges
 
+        edge_color = {}
         # for each pair (u, v) ∈ E  (can be optimized by maintaining edge list)
         for u in range(n):
             for v in range(n):
                 if G[u][v] != -1:
                     G_til[u][v] = G[u][v] + np.random.laplace(0.0, scale = (3*K)/epsilon)   # add a red edge to G_til, input perturbation
+                    edge_color[u,v] = "red"
         
         # for all pairs u, v ∈ S (u = S[i], v = S[j]). Note: using indices is easier to enumerate pairs
         for i in range(len(S)):
             for j in range(i+1, len(S)):
-                dist_u_v = shortest_path(G, S[i], S[j])  # actual shortest path (use Dijkstra's or any SSSP algo)        
-                if dist_u_v != -1:                # blue edge replaces sum of every edges from u to v. it will be as if there's one single edge from u to v
+                dist_u_v = shortest_path(G, S[i], S[j])  # actual shortest path (use Dijkstra's or any SSSP algo)   
+                # blue edge replaces sum of every edges from u to v. it will be as if there's one single edge from u to v     
+                if dist_u_v != -1:        
                     G_til[u][v] = dist_u_v + np.random.laplace(0.0, scale = (10*K*L*L)/epsilon) # add a blue edge to G_til, output-perturbation
+                    edge_color[u,v] = "blue"
         
         # for each B_t
         for t in range(len(balls)):
@@ -218,12 +275,48 @@ def bounded_weights(G, epsilon):
                     v = B_t[j]
                     M_t = medians[t]
                     G_til[u][v] = M_t[u][v]     # add a green edge to G_til
+                    edge_color[u,v] = "green"
 
         output_apsp = [[_ for _ in range(n)] for _ in range(n)]
         # for all pairs u, v ∈ V 
         for u in range(n):
             for v in range(n):
-                output_apsp[u][v] = constrained_shortest_path(G_til, u, v, (100*R*math.log(n)) + (100*T)/R, 1, (100*T)/R)   # dark magic
+                output_apsp[u][v] = constrained_shortest_path(G_til, edge_color, u, v, (100*R*math.log(n)) + (100*T)/R, 1, (100*T)/R)   # dark magic
         iterations.append(output_apsp)
     
     return matrix_median(iterations, n)    # return median over K iterations
+
+
+
+"""
+TESTING
+"""
+
+# Parameters
+n = 5  # number of vertices
+colors = ["red", "blue", "green"]
+
+# Generate adjacency matrix with random weights and missing edges
+G = [[-1 for _ in range(n)] for _ in range(n)]
+edge_color = {}
+
+for u in range(n):
+    for v in range(n):
+        if u != v and (u,v) not in edge_color and (v,u) not in edge_color:
+            if random.random() < 0.9:  # 90% chance of edge existing
+                G[u][v] = G[v][u] = random.randint(1, 10)
+                color = random.choice(colors)
+                edge_color[(u, v)] = edge_color[(v, u)] = color
+            else:
+                G[u][v] = G[v][u] = -1
+
+# Print graph
+print("Adjacency matrix (weights):")
+for row in G:
+    print(row)
+
+print("\nEdge colors:")
+for (u, v), c in edge_color.items():
+    print(f"({u} -> {v}): {c}")
+
+print(constrained_shortest_path(G, edge_color, 0, 4, 0, 0, 2))   # r, b, g
