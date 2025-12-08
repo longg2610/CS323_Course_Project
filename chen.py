@@ -10,6 +10,7 @@ A: bound of edge weight
 import math
 import copy
 import numpy as np
+import heapq
 
 """
 JAMES
@@ -20,7 +21,7 @@ G[u][v] = 1, otherwise G[u][v] = 0
 def ball(G, v, r):
     ball = set()
 
-
+    
     return ball
 
 """
@@ -86,15 +87,44 @@ def constrained_shortest_path(G, u, v, r, b, g):
     return -1
 
 """
-JAMES
 return shortest path from u to v i.e. dist(u, v). (Dijsktra)
 return -1 if v is not reachable from u
 """
 def shortest_path(G, u, v):
+    
+    n = len(G)
+    INF = float('inf')
 
+    dist = [INF] * n
+    dist[u] = 0
 
+    pq = [(0, u)]  # (distance, node)
 
+    while pq:
+        d, node = heapq.heappop(pq)
+
+        # Early stop
+        if node == v:
+            return d
+
+        if d > dist[node]:
+            continue
+
+        # Explore neighbors
+        for j in range(n):
+            w = G[node][j]
+
+            if w == -1:     # no edge
+                continue
+
+            nd = d + w
+            if nd < dist[j]:
+                dist[j] = nd
+                heapq.heappush(pq, (nd, j))
+
+    # v unreachable
     return -1
+
 
 """
 return H, the unweighted graph topology of G

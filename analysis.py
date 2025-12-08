@@ -72,11 +72,12 @@ def read_graph_from_file(file_path):
 def main():
     
     num_runs = 5
-    epsilon_values = [0.01, 0.1, 0.5, 1.0, 2.0, 5.0, 10.0]
+    epsilon_values = [0.001, 0.01, 0.1, 0.5, 1.0, 2.0, 5.0, 10.0]
     graph = read_graph_from_file("./data/graph_300_100.txt")
     
     # Get true distances (non-private Floyd-Warshall)
     true_distances = floyd_warshall(graph)
+    print(len(true_distances))
     
     # Storage for results across epsilon values
     floyd_warshall_results = {'mean_error': [], 'max_error': [], 'runtime': []}

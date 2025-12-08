@@ -28,6 +28,7 @@ def dp_floyd_warshall_input_pertubation(graph, eps = 1.0):
     
     for i in range(num_vertices):
         for j in range(num_vertices):
+            # if distances[i][j] != -1 and i != j:
             if i != j:
                 noise = np.random.laplace(0, 1/eps)
                 distances[i][j] += noise
@@ -36,6 +37,12 @@ def dp_floyd_warshall_input_pertubation(graph, eps = 1.0):
     for k in range(num_vertices):
         for i in range(num_vertices):
             for j in range(num_vertices):
+                # if distances[i][k] == -1 or distances[k][j] == -1:
+                #     continue
+                
+                # if  distances[i][j] == -1:
+                #     distances[i][j] = distances[i][k] + distances[k][j]
+                    
                 if distances[i][k] + distances[k][j] < distances[i][j]:
                     distances[i][j] = distances[i][k] + distances[k][j]
     
@@ -66,6 +73,12 @@ def dp_floyd_warshall_output_pertubation(graph, eps = 1.0):
     for k in range(num_vertices):
         for i in range(num_vertices):
             for j in range(num_vertices):
+                # if distances[i][k] == -1 or distances[k][j] == -1:
+                #     continue
+                
+                # if  distances[i][j] == -1:
+                #     distances[i][j] = distances[i][k] + distances[k][j]
+                
                 if distances[i][k] + distances[k][j] < distances[i][j]:
                     distances[i][j] = distances[i][k] + distances[k][j]
     
