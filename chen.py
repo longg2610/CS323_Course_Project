@@ -11,6 +11,8 @@ import math
 import copy
 import numpy as np
 import random
+import heapq
+
 random.seed(36)
 
 """
