@@ -23,7 +23,22 @@ G[u][v] = 1, otherwise G[u][v] = 0
 """
 def ball(G, v, r):
     ball = set()
-
+    
+    # BFS to find all vertices within distance r from v
+    n = len(G) 
+    queue = [(v, 0)]  # (current_vertex, current_distance)
+    visited = [False] * n
+    visited[v] = True
+    
+    while queue:
+        current, dist = queue.pop(0)
+        ball.add(current)
+        
+        if dist < r:
+            for neighbor in range(n):
+                if G[current][neighbor] == 1 and not visited[neighbor]:
+                    visited[neighbor] = True
+                    queue.append((neighbor, dist + 1))
     
     return ball
 
