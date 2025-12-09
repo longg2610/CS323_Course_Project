@@ -25,6 +25,10 @@ def ball(G, v, r):
 
     return ball
 
+def add_edge(G, u, v, value):
+    G[u][v] = value
+    G[v][u] = value
+
 """
 return graph G with vertices in V peeled off (G.V-V)
 """
@@ -34,9 +38,9 @@ def peel(G, V):
     for u in range(n):
         for v in range(n):
             if u in V or v in V:
-                subgraph[u][v] = -1
+                add_edge(subgraph, u, v, -1)
             else:
-                subgraph[u][v] = G[u][v]
+                add_edge(subgraph, u, v, G[u][v])
     return subgraph
 
 
@@ -55,9 +59,9 @@ def subgraph(G, V):
     for u in range(n):
         for v in range(n):
             if u in pruned_set or v in pruned_set:
-                subgraph[u][v] = -1
+                add_edge(subgraph, u, v, -1)
             else:
-                subgraph[u][v] = G[u][v]
+                add_edge(subgraph, u, v, G[u][v])
     return subgraph
 
 """
@@ -70,12 +74,12 @@ def matrix_median(matrices, n):
     for i in range(L):
         mat = matrices[i]
         for u in range(n):
-            for v in range(n):
-                mat_median[u][v] += mat[u][v]
+            for v in range(u+1, n):
+                add_edge(mat_median, u, v, mat_median[u][v] + mat[u][v])
     
     for u in range(n):
         for v in range(n):
-            mat_median[u][v] /= L
+            add_edge(mat_median, u, v, mat_median[u][v] / L)
 
     return mat_median
 
@@ -160,9 +164,9 @@ def get_topology(G):
     for u in range(n):
         for v in range(n):
             if G[u][v] >= 0:
-                H[u][v] = 1
+                add_edge(H, u, v, 1)
             else:               # G[u][v] == -1
-                H[u][v] = 0
+                add_edge(H, u, v, 0)
     return H
 
 """
@@ -221,19 +225,21 @@ def bounded_weights(G, epsilon):
         edge_color = {}
         # for each pair (u, v) ∈ E  (can be optimized by maintaining edge list)
         for u in range(n):
-            for v in range(n):
+            for v in range(u+1, n):
                 if G[u][v] != -1:
-                    G_til[u][v] = G[u][v] + np.random.laplace(0.0, scale = (3*K)/epsilon)   # add a red edge to G_til, input perturbation
-                    edge_color[u,v] = "red"
+                    noise = np.random.laplace(0.0, scale = (3*K)/epsilon)
+                    add_edge(G_til, u, v, G[u][v] + noise)  # add a red edge to G_til, input perturbation
+                    edge_color[u,v] = edge_color[v,u] = "red"
         
         # for all pairs u, v ∈ S (u = S[i], v = S[j]). Note: using indices is easier to enumerate pairs
         for i in range(len(S)):
             for j in range(i+1, len(S)):
                 dist_u_v = shortest_path(G, S[i], S[j])  # actual shortest path (use Dijkstra's or any SSSP algo)   
                 # blue edge replaces sum of every edges from u to v. it will be as if there's one single edge from u to v     
-                if dist_u_v != -1:        
-                    G_til[u][v] = dist_u_v + np.random.laplace(0.0, scale = (10*K*L*L)/epsilon) # add a blue edge to G_til, output-perturbation
-                    edge_color[u,v] = "blue"
+                if dist_u_v != -1:     
+                    noise = np.random.laplace(0.0, scale = (10*K*L*L)/epsilon)   
+                    add_edge(G_til, u, v, dist_u_v + noise) # add a blue edge to G_til, output-perturbation
+                    edge_color[u,v] = edge_color[v,u] = "blue"
         
         # for each B_t
         for t in range(len(balls)):
@@ -244,14 +250,14 @@ def bounded_weights(G, epsilon):
                     u = B_t[i]
                     v = B_t[j]
                     M_t = medians[t]
-                    G_til[u][v] = M_t[u][v]     # add a green edge to G_til
-                    edge_color[u,v] = "green"
+                    add_edge(G_til, u, v, M_t[u][v])    # add a green edge to G_til
+                    edge_color[u,v] = edge_color[v,u] = "green"
 
         output_apsp = [[_ for _ in range(n)] for _ in range(n)]
         # for all pairs u, v ∈ V 
         for u in range(n):
             for v in range(n):
-                output_apsp[u][v] = constrained_shortest_path(G_til, edge_color, u, v, (100*R*math.log(n)) + (100*T)/R, 1, (100*T)/R)   # dark magic
+                add_edge(output_apsp, u, v, constrained_shortest_path(G_til, edge_color, u, v, (100*R*math.log(n)) + (100*T)/R, 1, (100*T)/R)) # dark magic
         iterations.append(output_apsp)
     
     return matrix_median(iterations, n)    # return median over K iterations
