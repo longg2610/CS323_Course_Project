@@ -11,6 +11,8 @@ import math
 import copy
 import numpy as np
 import random
+import heapq
+
 random.seed(36)
 
 """
@@ -21,8 +23,23 @@ G[u][v] = 1, otherwise G[u][v] = 0
 """
 def ball(G, v, r):
     ball = set()
-
-
+    
+    # BFS to find all vertices within distance r from v
+    n = len(G) 
+    queue = [(v, 0)]  # (current_vertex, current_distance)
+    visited = [False] * n
+    visited[v] = True
+    
+    while queue:
+        current, dist = queue.pop(0)
+        ball.add(current)
+        
+        if dist < r:
+            for neighbor in range(n):
+                if G[current][neighbor] == 1 and not visited[neighbor]:
+                    visited[neighbor] = True
+                    queue.append((neighbor, dist + 1))
+    
     return ball
 
 def add_edge(G, u, v, value):
@@ -148,10 +165,40 @@ return shortest path from u to v i.e. dist(u, v). (Dijsktra)
 return -1 if v is not reachable from u
 """
 def shortest_path(G, u, v):
+    
+    n = len(G)
+    INF = float('inf')
 
+    dist = [INF] * n
+    dist[u] = 0
 
+    pq = [(0, u)]  # (distance, node)
 
+    while pq:
+        d, node = heapq.heappop(pq)
+
+        # Early stop
+        if node == v:
+            return d
+
+        if d > dist[node]:
+            continue
+
+        # Explore neighbors
+        for j in range(n):
+            w = G[node][j]
+
+            if w == -1:     # no edge
+                continue
+
+            nd = d + w
+            if nd < dist[j]:
+                dist[j] = nd
+                heapq.heappush(pq, (nd, j))
+
+    # v unreachable
     return -1
+
 
 """
 return H, the unweighted graph topology of G

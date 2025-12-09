@@ -1,21 +1,41 @@
 import random
 
-num_nodes = 300
-num_edges = 100  # you can adjust the density
-max_weight = 100
+num_nodes = 10
+num_edges = 10  # must be >= num_nodes
+max_weight = 10
 min_weight = 1
 
-# Generate node names
-nodes = [f"N{i}" for i in range(1, num_nodes + 1)]
+nodes = [f"{i}" for i in range(1, num_nodes + 1)]
 
-# Generate random edges
-edges = []
-for _ in range(num_edges):
-    n1, n2 = random.sample(nodes, 2)  # choose 2 distinct nodes
-    weight = random.randint(min_weight, max_weight)   # random weight between 1 and 100
-    edges.append((n1, n2, weight))
+edges = []                # full edge list (with weights)
+used_pairs = set()        # store only (u,v) pairs to avoid duplicates
 
-# Save to a text file
+# --- Step 1: Ensure each node has at least one edge ---
+for u in nodes:
+    v = random.choice(nodes)
+    while v == u or tuple(sorted((u, v))) in used_pairs:
+        v = random.choice(nodes)
+
+    pair = tuple(sorted((u, v)))
+    used_pairs.add(pair)
+
+    w = random.randint(min_weight, max_weight)
+    edges.append((u, v, w))
+
+# --- Step 2: Add more edges up to num_edges ---
+while len(edges) < num_edges:
+    u, v = random.sample(nodes, 2)
+    pair = tuple(sorted((u, v)))
+
+    if pair in used_pairs:
+        continue
+
+    used_pairs.add(pair)
+
+    w = random.randint(min_weight, max_weight)
+    edges.append((u, v, w))
+
+# --- Save to file ---
 with open(f"./data/graph_{num_nodes}_{num_edges}.txt", "w") as f:
     for u, v, w in edges:
         f.write(f"{u} {v} {w}\n")
