@@ -9,8 +9,8 @@ import numpy as np
 import random
 import heapq
 
-random.seed(36)
-np.random.seed(36)
+# random.seed(36)
+# np.random.seed(36)
 INF = float('inf')
 
 """
@@ -378,30 +378,30 @@ def bounded_weights(G, V, A, epsilon):
 TESTING
 """
 
-def generate_graph(n, A, edge_prob):
-    # Parameters: runtime changes with n/edge_bound proportion
-    # Generate adjacency matrix with random weights and missing edges
-    G = [[INF for _ in range(n)] for _ in range(n)]
+# def generate_graph(n, A, edge_prob):
+#     # Parameters: runtime changes with n/edge_bound proportion
+#     # Generate adjacency matrix with random weights and missing edges
+#     G = [[INF for _ in range(n)] for _ in range(n)]
 
-    for u in range(n):
-        for v in range(n):
-            if u != v:
-                if random.random() < edge_prob:  # chance of edge existing
-                    G[u][v] = G[v][u] = random.randint(1, A)
-                else:
-                    G[u][v] = G[v][u] = INF
-    return G
+#     for u in range(n):
+#         for v in range(n):
+#             if u != v:
+#                 if random.random() < edge_prob:  # chance of edge existing
+#                     G[u][v] = G[v][u] = random.randint(1, A)
+#                 else:
+#                     G[u][v] = G[v][u] = INF
+#     return G
 
-edge_prob = 0.6
-n = 25
+# edge_prob = 0.6
+# n = 25
 
 # A1 = 100
 # A2 = 1000
-A3 = 3000
+# A3 = 3000
 
 # G1 = generate_graph(n, A1, edge_prob)
 # G2 = generate_graph(n, A2, edge_prob)
-G3 = generate_graph(n, A3, edge_prob)
+# G3 = generate_graph(n, A3, edge_prob)
 
 
 
@@ -413,10 +413,10 @@ G3 = generate_graph(n, A3, edge_prob)
 #             A = max(A, val)
 
 # A = max(map(max, G))
-epsilon = 0.1
+# epsilon = 0.1
 # mat1 = bounded_weights(G1, set(range(len(G1))), A1, epsilon)
 # mat2 = bounded_weights(G2, set(range(len(G2))), A2, epsilon)
-mat3 = bounded_weights(G3, set(range(len(G3))), A3, epsilon)
+# mat3 = bounded_weights(G3, set(range(len(G3))), A3, epsilon)
 
 # n = len(mat1)
 # for i in range(n):
@@ -430,72 +430,72 @@ mat3 = bounded_weights(G3, set(range(len(G3))), A3, epsilon)
 #         if mat2[i][j] != INF:
 #             mat2[i][j] = math.floor(mat2[i][j])
 
-n = len(mat3)
-for i in range(n):
-    for j in range(n):
-        if mat3[i][j] != INF:
-            mat3[i][j] = math.floor(mat3[i][j])
+# n = len(mat3)
+# for i in range(n):
+#     for j in range(n):
+#         if mat3[i][j] != INF:
+#             mat3[i][j] = math.floor(mat3[i][j])
 
 
-# print("TESTING:")  
+# # print("TESTING:")  
 
 
-def compute_accuracy(true_distances, calculated_distances):
-    A = np.array(true_distances, dtype=float)
-    B = np.array(calculated_distances, dtype=float)
+# def compute_accuracy(true_distances, calculated_distances):
+#     A = np.array(true_distances, dtype=float)
+#     B = np.array(calculated_distances, dtype=float)
 
-    # Mask unreachable nodes
-    # Consider only entries where both algorithms produced a valid distance
-    mask = (A != INF) & (B != INF)
+#     # Mask unreachable nodes
+#     # Consider only entries where both algorithms produced a valid distance
+#     mask = (A != INF) & (B != INF)
 
-    if not np.any(mask):
-        return 0.0, 0.0
+#     if not np.any(mask):
+#         return 0.0, 0.0
 
-    # print(A[mask])
-    # print(B[mask])
-    diff = np.abs(A[mask] - B[mask])
+#     # print(A[mask])
+#     # print(B[mask])
+#     diff = np.abs(A[mask] - B[mask])
 
-    mean_error = diff.mean()
-    max_error = diff.max()
+#     mean_error = diff.mean()
+#     max_error = diff.max()
 
-    return mean_error, max_error
+#     return mean_error, max_error
 
 
-def floyd_warshall(graph):
-    """
-    Computes shortest paths between all pairs of vertices using Floyd-Warshall algorithm.
+# def floyd_warshall(graph):
+#     """
+#     Computes shortest paths between all pairs of vertices using Floyd-Warshall algorithm.
     
-    Args:
-        graph: Distance matrix (2D list) where graph[i][j] is the distance from i to j
+#     Args:
+#         graph: Distance matrix (2D list) where graph[i][j] is the distance from i to j
         
-    Returns:
-        distances: 2D list of shortest distances between all pairs
-        paths: 2D list where paths[i][j] contains the sequence of vertices in the shortest path from i to j
-    """
+#     Returns:
+#         distances: 2D list of shortest distances between all pairs
+#         paths: 2D list where paths[i][j] contains the sequence of vertices in the shortest path from i to j
+#     """
     
-    num_vertices = len(graph)
+#     num_vertices = len(graph)
     
-    # Initialize distances and paths
-    distances = [row[:] for row in graph]  # Copy of the distance matrix
+#     # Initialize distances and paths
+#     distances = [row[:] for row in graph]  # Copy of the distance matrix
     
-    # Floyd-Warshall algorithm
-    for k in range(num_vertices):
-        for i in range(num_vertices):
-            for j in range(num_vertices):
-                if distances[i][k] == -1 or distances[k][j] == -1:
-                    continue
+#     # Floyd-Warshall algorithm
+#     for k in range(num_vertices):
+#         for i in range(num_vertices):
+#             for j in range(num_vertices):
+#                 if distances[i][k] == -1 or distances[k][j] == -1:
+#                     continue
                 
-                if  distances[i][j] == -1:
-                    distances[i][j] = distances[i][k] + distances[k][j]
+#                 if  distances[i][j] == -1:
+#                     distances[i][j] = distances[i][k] + distances[k][j]
                     
-                if distances[i][k] + distances[k][j] < distances[i][j]:
-                    distances[i][j] = distances[i][k] + distances[k][j]
+#                 if distances[i][k] + distances[k][j] < distances[i][j]:
+#                     distances[i][j] = distances[i][k] + distances[k][j]
     
-    return distances
+#     return distances
 
 
 
-print("ACCURACY:")
-# print(compute_accuracy(floyd_warshall(G1), mat1))
-# print(compute_accuracy(floyd_warshall(G2), mat2))
-# print(compute_accuracy(floyd_warshall(G3), mat3))
+# print("ACCURACY:")
+# # print(compute_accuracy(floyd_warshall(G1), mat1))
+# # print(compute_accuracy(floyd_warshall(G2), mat2))
+# # print(compute_accuracy(floyd_warshall(G3), mat3))
