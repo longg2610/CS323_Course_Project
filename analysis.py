@@ -140,52 +140,56 @@ def run_experiment(graph, epsilon_values, vertices, max_weight, num_runs=1):
               f"Max Error = {np.mean(chen_max_errors):.6f}")
     return results
 
-def plot_results(epsilon_values, results):
+def plot_results(epsilon_values, results, filename="results.png"):
+
+    fig, axes = plt.subplots(3, 1, figsize=(10, 12))
+    fig.tight_layout(pad=4.0)
 
     # --- Mean error ---
-    plt.figure(figsize=(8, 4))
-    plt.plot(epsilon_values, results["dp_in_mean"], label="DP Input Mean Error")
-    plt.plot(epsilon_values, results["dp_out_mean"], label="DP Output Mean Error")
-    plt.plot(epsilon_values, results["chen_mean"], label="Chen et al Mean Error")
-    plt.xlabel("epsilon")
-    plt.ylabel("Mean Error")
-    plt.title("Mean Error vs epsilon")
-    plt.grid(True)
-    plt.legend()
-    plt.tight_layout()
-    plt.show()
+    ax = axes[0]
+    ax.plot(epsilon_values, results["dp_in_mean"], label="DP Input Mean Error")
+    ax.plot(epsilon_values, results["dp_out_mean"], label="DP Output Mean Error")
+    ax.plot(epsilon_values, results["chen_mean"], label="Chen et al Mean Error")
+    ax.set_xlabel("epsilon")
+    ax.set_ylabel("Mean Error")
+    ax.set_title("Mean Error vs epsilon")
+    ax.grid(True)
+    ax.legend()
 
     # --- Max error ---
-    plt.figure(figsize=(8, 4))
-    plt.plot(epsilon_values, results["dp_in_max"], label="DP Input Max Error")
-    plt.plot(epsilon_values, results["dp_out_max"], label="DP Output Max Error")
-    plt.plot(epsilon_values, results["chen_max"], label="Chen et al Max Error")
-    plt.xlabel("epsilon")
-    plt.ylabel("Max Error")
-    plt.title("Max Error vs epsilon")
-    plt.grid(True)
-    plt.legend()
-    plt.tight_layout()
-    plt.show()
+    ax = axes[1]
+    ax.plot(epsilon_values, results["dp_in_max"], label="DP Input Max Error")
+    ax.plot(epsilon_values, results["dp_out_max"], label="DP Output Max Error")
+    ax.plot(epsilon_values, results["chen_max"], label="Chen et al Max Error")
+    ax.set_xlabel("epsilon")
+    ax.set_ylabel("Max Error")
+    ax.set_title("Max Error vs epsilon")
+    ax.grid(True)
+    ax.legend()
 
     # --- Runtime comparison ---
-    plt.figure(figsize=(8, 4))
-    plt.plot(epsilon_values, results["dp_in_runtime"], label="DP Input Runtime", marker="o")
-    plt.plot(epsilon_values, results["dp_out_runtime"], label="DP Output Runtime", marker="o")
-    plt.plot(epsilon_values, results["chen_runtime"], label="Chen et al. Runtime", marker="o")
-    plt.axhline(
+    ax = axes[2]
+    ax.plot(epsilon_values, results["dp_in_runtime"], label="DP Input Runtime", marker="o")
+    ax.plot(epsilon_values, results["dp_out_runtime"], label="DP Output Runtime", marker="o")
+    ax.plot(epsilon_values, results["chen_runtime"], label="Chen et al. Runtime", marker="o")
+    ax.axhline(
         y=results["floyd_runtime"],
         linestyle="--",
         color="r",
         label="Floyd-Warshall"
     )
-    plt.xlabel("epsilon")
-    plt.ylabel("Runtime (seconds)")
-    plt.title("Runtime vs epsilon — DP vs Floyd-Warshall")
-    plt.grid(True)
-    plt.legend()
-    plt.tight_layout()
+    ax.set_xlabel("epsilon")
+    ax.set_ylabel("Runtime (seconds)")
+    ax.set_title("Runtime vs epsilon — DP vs Floyd-Warshall")
+    ax.grid(True)
+    ax.legend()
+
+    # Save to file
+    plt.savefig(filename, dpi=300, bbox_inches="tight")
+
+    # Show
     plt.show()
+
 
 if __name__ == "__main__":
     file = "./data/graph_16_200_0.9.txt"
