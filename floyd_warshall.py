@@ -5,41 +5,37 @@ floyd_warshall.py
 This file contains the implementation of Floyd-Warshall Algorithm on a weighted graph.
 """
 
+INF = float("inf")
 
 def floyd_warshall(graph):
     """
     Computes shortest paths between all pairs of vertices using Floyd-Warshall algorithm.
     
     Args:
-        graph: Distance matrix (2D list) where graph[i][j] is the distance from i to j
+        graph: Distance matrix (2D list) where graph[i][j] is the distance from i to j,
+               or INF if no direct edge.
         
     Returns:
         distances: 2D list of shortest distances between all pairs
-        paths: 2D list where paths[i][j] contains the sequence of vertices in the shortest path from i to j
     """
     
     num_vertices = len(graph)
     
-    # Initialize distances and paths
-    distances = [row[:] for row in graph]  # Copy of the distance matrix
+    # Copy original distance matrix
+    distances = [row[:] for row in graph]
     
-    # Floyd-Warshall algorithm
+    # Floyd–Warshall
     for k in range(num_vertices):
         for i in range(num_vertices):
             for j in range(num_vertices):
-                if distances[i][k] == -1 or distances[k][j] == -1:
+                # Skip if either side is unreachable
+                if distances[i][k] == INF or distances[k][j] == INF:
                     continue
                 
-                if  distances[i][j] == -1:
-                    distances[i][j] = distances[i][k] + distances[k][j]
-                    
-                if distances[i][k] + distances[k][j] < distances[i][j]:
-                    distances[i][j] = distances[i][k] + distances[k][j]
+                new_d = distances[i][k] + distances[k][j]
+                
+                # If no previous path or shorter path found
+                if distances[i][j] == INF or new_d < distances[i][j]:
+                    distances[i][j] = new_d
     
     return distances
-
-
-
-
-
-
