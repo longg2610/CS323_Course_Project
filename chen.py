@@ -251,7 +251,7 @@ def bounded_weights(G, V, A, epsilon):
         return [[INF for _ in range(n)] for _ in range(n)]
 
     # K = math.floor(100 * math.log(V_len, 10))
-    K = math.floor(2 * math.log(V_len, 10))
+    K = math.floor(1 * math.log(V_len, 10))
     T = V_len / ((A * epsilon * V_len) ** ((math.sqrt(17) - 3)/4))
     R = V_len / ((A * epsilon * V_len) ** ((5 - math.sqrt(17))/2))
     # L = math.floor(100 * math.log(n, 10) * ((A * epsilon * V_len) ** ((math.sqrt(17) - 3)/4)))
@@ -267,7 +267,7 @@ def bounded_weights(G, V, A, epsilon):
 
         balls = []
         for v_t in V:    # for each vertex in H_prime
-            ball_radius = len(ball(H_prime, v_t, 100*R* math.log(V_len, 10)))
+            ball_radius = len(ball(H_prime, v_t, 1*R* math.log(V_len, 10)))
 
             # if ball_radius == V_len:                                          
             #     continue
@@ -305,7 +305,7 @@ def bounded_weights(G, V, A, epsilon):
             matrices = []       # len(matrices) = K
             for l in range(1, K + 1):
                 subgr = subgraph(G, B_t)
-                M_t_l = bounded_weights(subgr, B_t, A, epsilon / (3*((100 * math.log(V_len, 10))**2)))
+                M_t_l = bounded_weights(subgr, B_t, A, epsilon / (3*((1 * math.log(V_len, 10))**2)))
                 # print("M_t_l:", M_t_l)
                 matrices.append(M_t_l)
 

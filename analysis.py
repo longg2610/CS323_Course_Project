@@ -10,6 +10,7 @@ from chen import bounded_weights
 import time
 import numpy as np
 import matplotlib.pyplot as plt
+import os
     
     
 def compute_accuracy(true_distances, calculated_distances):
@@ -150,6 +151,7 @@ def plot_results(epsilon_values, results, filename="results.png"):
     ax.plot(epsilon_values, results["dp_in_mean"], label="DP Input Mean Error")
     ax.plot(epsilon_values, results["dp_out_mean"], label="DP Output Mean Error")
     ax.plot(epsilon_values, results["chen_mean"], label="Chen et al Mean Error")
+    ax.set_yscale('log')
     ax.set_xlabel("epsilon")
     ax.set_ylabel("Mean Error")
     ax.set_title("Mean Error vs epsilon")
@@ -161,6 +163,7 @@ def plot_results(epsilon_values, results, filename="results.png"):
     ax.plot(epsilon_values, results["dp_in_max"], label="DP Input Max Error")
     ax.plot(epsilon_values, results["dp_out_max"], label="DP Output Max Error")
     ax.plot(epsilon_values, results["chen_max"], label="Chen et al Max Error")
+    ax.set_yscale('log')
     ax.set_xlabel("epsilon")
     ax.set_ylabel("Max Error")
     ax.set_title("Max Error vs epsilon")
@@ -190,14 +193,164 @@ def plot_results(epsilon_values, results, filename="results.png"):
     # Show
     plt.show()
 
+# Helper to plot mean error, max error, and runtime for a dictionary of results
+def plot_three_metrics(x_values, all_results, x_label, filename_prefix):
+    # Convert dict-of-results into lists sorted by the x-values
+    xs = sorted(x_values)
+
+    dp_in_mean = [all_results[x]["dp_in_mean"][0] for x in xs]
+    dp_out_mean = [all_results[x]["dp_out_mean"][0] for x in xs]
+    chen_mean   = [all_results[x]["chen_mean"][0]   for x in xs]
+
+    dp_in_max = [all_results[x]["dp_in_max"][0] for x in xs]
+    dp_out_max = [all_results[x]["dp_out_max"][0] for x in xs]
+    chen_max   = [all_results[x]["chen_max"][0]   for x in xs]
+
+    dp_in_rt = [all_results[x]["dp_in_runtime"][0] for x in xs]
+    dp_out_rt = [all_results[x]["dp_out_runtime"][0] for x in xs]
+    chen_rt   = [all_results[x]["chen_runtime"][0]   for x in xs]
+    fw_rt     = [all_results[x]["floyd_runtime"]     for x in xs]
+
+    # --------------------------
+    # Mean Error
+    # --------------------------
+    plt.figure(figsize=(8,5))
+    plt.plot(xs, dp_in_mean, marker='o', label="DP Input Mean Error")
+    plt.plot(xs, dp_out_mean, marker='o', label="DP Output Mean Error")
+    plt.plot(xs, chen_mean, marker='o', label="Chen et al Mean Error")
+    plt.yscale('log')
+    plt.xlabel(x_label)
+    plt.ylabel("Mean Error")
+    plt.title(f"Mean Error vs {x_label}")
+    plt.grid(True)
+    plt.legend()
+    plt.savefig(f"{filename_prefix}_mean_error.png", dpi=300, bbox_inches="tight")
+    plt.show()
+
+    # --------------------------
+    # Max Error
+    # --------------------------
+    plt.figure(figsize=(8,5))
+    plt.plot(xs, dp_in_max, marker='o', label="DP Input Max Error")
+    plt.plot(xs, dp_out_max, marker='o', label="DP Output Max Error")
+    plt.plot(xs, chen_max, marker='o', label="Chen et al Max Error")
+    plt.yscale('log')
+    plt.xlabel(x_label)
+    plt.ylabel("Max Error")
+    plt.title(f"Max Error vs {x_label}")
+    plt.grid(True)
+    plt.legend()
+    plt.savefig(f"{filename_prefix}_max_error.png", dpi=300, bbox_inches="tight")
+    plt.show()
+
+    # --------------------------
+    # Runtime
+    # --------------------------
+    plt.figure(figsize=(8,5))
+    plt.plot(xs, dp_in_rt, marker='o', label="DP Input Runtime")
+    plt.plot(xs, dp_out_rt, marker='o', label="DP Output Runtime")
+    plt.plot(xs, chen_rt, marker='o', label="Chen et al Runtime")
+    plt.plot(xs, fw_rt, marker='o', label="Floyd-Warshall Runtime", linestyle='--')
+    plt.xlabel(x_label)
+    plt.ylabel("Runtime (seconds)")
+    plt.title(f"Algorithm Runtime vs {x_label}")
+    plt.grid(True)
+    plt.legend()
+    plt.savefig(f"{filename_prefix}_runtime.png", dpi=300, bbox_inches="tight")
+    plt.show()
+
+
+def run_vary_vertices():
+    print("Run varying number of vertices")
+
+    test_files = [
+        "graph_10_200_0.2.txt",
+        "graph_15_200_0.2.txt",
+        "graph_20_200_0.2.txt",
+        "graph_25_200_0.2.txt",
+        "graph_30_200_0.2.txt",
+    ]
+
+    epsilon_values = [0.2]
+    max_weight = 200
+
+    all_results = {}
+
+    for fname in test_files:
+        path = os.path.join("./data", fname)
+        graph = read_graph_from_file(path)
+        n = len(graph)
+        vertices = set(range(n))
+
+        print(f"\n--- Running experiment for {fname} (n={n}) ---")
+        results = run_experiment(graph, epsilon_values, vertices=vertices,
+                                 max_weight=max_weight, num_runs=3)
+        all_results[n] = results
+
+    # Plot mean/max error & runtime
+    plot_three_metrics(
+        x_values=list(all_results.keys()),
+        all_results=all_results,
+        x_label="Number of Vertices",
+        filename_prefix="results_num_vertices_comparison"
+    )
+
+
+# -----------------------------------
+# TEST 2: Vary max weight (A parameter)
+# -----------------------------------
+
+def run_vary_max_weight():
+    print("Run varying max weight")
+
+    test_files = [
+        "graph_25_100_0.6.txt",
+        "graph_25_500_0.6.txt",
+        "graph_25_1000_0.6.txt",
+        "graph_25_2000_0.6.txt",
+        "graph_25_3000_0.6.txt",
+    ]
+
+    epsilon_values = [0.1]
+
+    all_results = {}
+    max_weights = []
+
+    for fname in test_files:
+        path = os.path.join("./data", fname)
+
+        parts = fname.split("_")
+        maxW = int(parts[2])
+        max_weights.append(maxW)
+
+        graph = read_graph_from_file(path)
+        vertices = set(range(len(graph)))
+
+        print(f"\n--- Running experiment for {fname} (maxW={maxW}) ---")
+        results = run_experiment(graph, epsilon_values, vertices=vertices,
+                                 max_weight=maxW, num_runs=3)
+        all_results[maxW] = results
+
+    # Plot results
+    plot_three_metrics(
+        x_values=max_weights,
+        all_results=all_results,
+        x_label="Max Weight",
+        filename_prefix="results_max_weight_comparison"
+    )
+
 
 if __name__ == "__main__":
-    file = "./data/graph_16_200_0.9.txt"
-    graph = read_graph_from_file(file)
-    epsilon_values = [0.1, 0.2, 0.5, 1, 2, 5]
-    n = len(graph)
-    vertices = set(range(n))
-    max_weight = 200 
-    results = run_experiment(graph, epsilon_values, vertices=vertices, max_weight=max_weight, num_runs=5)
+    # file = "./data/graph_16_200_0.9.txt"
+    # graph = read_graph_from_file(file)
+    # epsilon_values = [0.1, 0.2, 0.5, 0.75, 1]
+    # n = len(graph)
+    # vertices = set(range(n))
+    # max_weight = 200 
+    # results = run_experiment(graph, epsilon_values, vertices=vertices, max_weight=max_weight, num_runs=5)
 
-    plot_results(epsilon_values, results)
+    # filename = f"results.png"
+    # plot_results(epsilon_values, results)
+    
+    run_vary_vertices()
+    run_vary_max_weight()

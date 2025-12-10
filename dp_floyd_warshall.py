@@ -6,6 +6,7 @@ This file contains the implementation of a simple Differentially Private Floyd-W
 """
 
 import numpy as np
+import math
 
 INF = float("inf")
 
@@ -26,11 +27,13 @@ def dp_floyd_warshall_input_perturbation(graph, eps = 1.0):
     # Initialize distances and paths with copy
     distances = [row[:] for row in graph]
     
+    # sensitivity = 3 * (math.log(num_vertices, 10))        # sensitivity comparable to Chen et al. (3K)
+    sensitivity = 1
     # Add noise to each existing edge (not INF), excluding self-loops
     for i in range(num_vertices):
         for j in range(num_vertices):
             if i != j and distances[i][j] != INF:
-                noise = np.random.laplace(0, 1/eps)
+                noise = np.random.laplace(0, sensitivity/eps)
                 distances[i][j] += noise
     
     # Floyd-Warshall algorithm
@@ -62,6 +65,8 @@ def dp_floyd_warshall_output_perturbation(graph, eps = 1.0):
     
     distances = [row[:] for row in graph]
     
+    # sensitivity = 3 * (math.log(num_vertices, 10))        # sensitivity comparable to Chen et al. (3K)
+    sensitivity = 1
     # Floyd-Warshall
     for k in range(num_vertices):
         for i in range(num_vertices):
@@ -76,7 +81,7 @@ def dp_floyd_warshall_output_perturbation(graph, eps = 1.0):
     for i in range(num_vertices):
         for j in range(num_vertices):
             if i != j and distances[i][j] != INF:
-                noise = np.random.laplace(0, 1/eps)
+                noise = np.random.laplace(0, sensitivity/eps)
                 distances[i][j] += noise
     
     return distances
