@@ -295,62 +295,16 @@ def run_vary_vertices():
         filename_prefix="results_num_vertices_comparison"
     )
 
-
-# -----------------------------------
-# TEST 2: Vary max weight (A parameter)
-# -----------------------------------
-
-def run_vary_max_weight():
-    print("Run varying max weight")
-
-    test_files = [
-        "graph_25_100_0.6.txt",
-        "graph_25_500_0.6.txt",
-        "graph_25_1000_0.6.txt",
-        "graph_25_2000_0.6.txt",
-        "graph_25_3000_0.6.txt",
-    ]
-
-    epsilon_values = [0.1]
-
-    all_results = {}
-    max_weights = []
-
-    for fname in test_files:
-        path = os.path.join("./data", fname)
-
-        parts = fname.split("_")
-        maxW = int(parts[2])
-        max_weights.append(maxW)
-
-        graph = read_graph_from_file(path)
-        vertices = set(range(len(graph)))
-
-        print(f"\n--- Running experiment for {fname} (maxW={maxW}) ---")
-        results = run_experiment(graph, epsilon_values, vertices=vertices,
-                                 max_weight=maxW, num_runs=3)
-        all_results[maxW] = results
-
-    # Plot results
-    plot_three_metrics(
-        x_values=max_weights,
-        all_results=all_results,
-        x_label="Max Weight",
-        filename_prefix="results_max_weight_comparison"
-    )
-
-
 if __name__ == "__main__":
-    # file = "./data/graph_16_200_0.9.txt"
-    # graph = read_graph_from_file(file)
-    # epsilon_values = [0.1, 0.2, 0.5, 0.75, 1]
-    # n = len(graph)
-    # vertices = set(range(n))
-    # max_weight = 200 
-    # results = run_experiment(graph, epsilon_values, vertices=vertices, max_weight=max_weight, num_runs=5)
+    file = "./data/graph_16_200_0.9.txt"
+    graph = read_graph_from_file(file)
+    epsilon_values = [0.1, 0.2, 0.5, 0.75, 1]
+    n = len(graph)
+    vertices = set(range(n))
+    max_weight = 200 
+    results = run_experiment(graph, epsilon_values, vertices=vertices, max_weight=max_weight, num_runs=5)
 
-    # filename = f"results.png"
-    # plot_results(epsilon_values, results)
+    filename = "results_epsilon_comparison.png"
+    plot_results(epsilon_values, results)
     
     run_vary_vertices()
-    run_vary_max_weight()
