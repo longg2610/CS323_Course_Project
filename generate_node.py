@@ -1,43 +1,49 @@
 import random
 
-num_nodes = 10
-num_edges = 10  # must be >= num_nodes
-max_weight = 10
-min_weight = 1
+INF = float('inf')
 
-nodes = [f"{i}" for i in range(1, num_nodes + 1)]
+def generate_graph(n, A, edge_prob):
+    # Parameters: runtime changes with n/edge_bound proportion
+    # Generate adjacency matrix with random weights and missing edges
+    G = [[INF for _ in range(n)] for _ in range(n)]
 
-edges = []                # full edge list (with weights)
-used_pairs = set()        # store only (u,v) pairs to avoid duplicates
+    for u in range(n):
+        for v in range(n):
+            if u != v:
+                if random.random() < edge_prob:  # chance of edge existing
+                    G[u][v] = G[v][u] = random.randint(1, A)
+                else:
+                    G[u][v] = G[v][u] = INF
 
-# --- Step 1: Ensure each node has at least one edge ---
-for u in nodes:
-    v = random.choice(nodes)
-    while v == u or tuple(sorted((u, v))) in used_pairs:
-        v = random.choice(nodes)
+    return G
 
-    pair = tuple(sorted((u, v)))
-    used_pairs.add(pair)
+# num_vertices = 16
+# max_weight = 200
+# edge_probability = 0.90
 
-    w = random.randint(min_weight, max_weight)
-    edges.append((u, v, w))
+# 10, 15, 20, 25, 30
+# A = 200
+# edge_prob = 0.2
+# epsilon = 0.1
 
-# --- Step 2: Add more edges up to num_edges ---
-while len(edges) < num_edges:
-    u, v = random.sample(nodes, 2)
-    pair = tuple(sorted((u, v)))
+# A = 100, 500, 1000, 2000, 3000
+# n = 25
+# edge_prob = 0.6
+# epsilon = 0.1
 
-    if pair in used_pairs:
-        continue
+num_vertices = 25
+max_weight = 3000
+edge_probability = 0.6
 
-    used_pairs.add(pair)
 
-    w = random.randint(min_weight, max_weight)
-    edges.append((u, v, w))
+graph = generate_graph(num_vertices, max_weight, edge_probability)
 
-# --- Save to file ---
-with open(f"./data/graph_{num_nodes}_{num_edges}.txt", "w") as f:
-    for u, v, w in edges:
-        f.write(f"{u} {v} {w}\n")
-
-print(f"Generated graph with {num_nodes} nodes and {len(edges)} edges.")
+# Dump the graph adj matrix to a text file for easy loading later
+with open(f"data/graph_{num_vertices}_{max_weight}_{edge_probability}.txt", "w") as f:
+    for i in range(num_vertices):
+        for j in range(num_vertices):
+            if graph[i][j] == INF:
+                f.write("INF ")
+            else:
+                f.write(f"{graph[i][j]} ")
+        f.write("\n")

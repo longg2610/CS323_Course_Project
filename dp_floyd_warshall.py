@@ -7,28 +7,29 @@ This file contains the implementation of a simple Differentially Private Floyd-W
 
 import numpy as np
 
+INF = float("inf")
 
-# Input pertubation - add noise to each edge weight
 
-def dp_floyd_warshall_input_pertubation(graph, eps = 1.0):
+def dp_floyd_warshall_input_perturbation(graph, eps = 1.0):
     """
-    Computes shortest paths between all pairs of vertices using Floyd-Warshall algorithm.
+    Computes shortest paths between all pairs of vertices using Floyd-Warshall algorithm,
+    with input perturbation (noise added to each edge).
     
     Args:
-        graph: Distance matrix (2D list) where graph[i][j] is the distance from i to j
-        
+        graph: Distance matrix (2D list) where graph[i][j] is the distance from i to j,
+               or INF if no direct edge.
     Returns:
         distances: 2D list of shortest distances between all pairs
     """
+    num_vertices = len(graph)
     
-    num_vertices = len(graph) 
+    # Initialize distances and paths with copy
+    distances = [row[:] for row in graph]
     
-    # Initialize distances and paths
-    distances = [row[:] for row in graph]  # Copy of the distance matrix
-    
+    # Add noise to each existing edge (not INF), excluding self-loops
     for i in range(num_vertices):
         for j in range(num_vertices):
-            if distances[i][j] != -1 and i != j:
+            if i != j and distances[i][j] != INF:
                 noise = np.random.laplace(0, 1/eps)
                 distances[i][j] += noise
     
@@ -36,56 +37,46 @@ def dp_floyd_warshall_input_pertubation(graph, eps = 1.0):
     for k in range(num_vertices):
         for i in range(num_vertices):
             for j in range(num_vertices):
-                if distances[i][k] == -1 or distances[k][j] == -1:
+                if distances[i][k] == INF or distances[k][j] == INF:
                     continue
-                
-                if  distances[i][j] == -1:
-                    distances[i][j] = distances[i][k] + distances[k][j]
-                    
-                if distances[i][k] + distances[k][j] < distances[i][j]:
-                    distances[i][j] = distances[i][k] + distances[k][j]
-    
-    
+                new_d = distances[i][k] + distances[k][j]
+                if distances[i][j] == INF or new_d < distances[i][j]:
+                    distances[i][j] = new_d
     
     return distances
 
 
-# Output pertubation - add noise to each entry in the distance matrix at the end
-
-def dp_floyd_warshall_output_pertubation(graph, eps = 1.0):
+def dp_floyd_warshall_output_perturbation(graph, eps = 1.0):
     """
-    Computes shortest paths between all pairs of vertices using Floyd-Warshall algorithm.
+    Computes shortest paths between all pairs of vertices using Floyd-Warshall algorithm,
+    then adds noise to each final distance entry (output perturbation).
     
     Args:
-        graph: Distance matrix (2D list) where graph[i][j] is the distance from i to j
-        
+        graph: Distance matrix (2D list) where graph[i][j] is the distance from i to j,
+               or INF if no direct edge.
     Returns:
-        distances: 2D list of shortest distances between all pairs
+        distances: 2D list of shortest distances between all pairs (with noise added),
+                   INF if no path exists between i and j.
     """
+    num_vertices = len(graph)
     
-    num_vertices = len(graph) 
+    distances = [row[:] for row in graph]
     
-    # Initialize distances and paths
-    distances = [row[:] for row in graph]  # Copy of the distance matrix
-    
-    # Floyd-Warshall algorithm
+    # Floyd-Warshall
     for k in range(num_vertices):
         for i in range(num_vertices):
             for j in range(num_vertices):
-                if distances[i][k] == -1 or distances[k][j] == -1:
+                if distances[i][k] == INF or distances[k][j] == INF:
                     continue
-                
-                if  distances[i][j] == -1:
-                    distances[i][j] = distances[i][k] + distances[k][j]
-                
-                if distances[i][k] + distances[k][j] < distances[i][j]:
-                    distances[i][j] = distances[i][k] + distances[k][j]
+                new_d = distances[i][k] + distances[k][j]
+                if distances[i][j] == INF or new_d < distances[i][j]:
+                    distances[i][j] = new_d
     
+    # Add noise to each finite distance (excluding self-loops, optionally)
     for i in range(num_vertices):
         for j in range(num_vertices):
-            if distances[i][j] != -1 and i != j:
+            if i != j and distances[i][j] != INF:
                 noise = np.random.laplace(0, 1/eps)
                 distances[i][j] += noise
-    
     
     return distances
