@@ -10,22 +10,6 @@ from chen import bounded_weights
 import time
 import numpy as np
 import matplotlib.pyplot as plt
-
-def run_shortest_paths(graph, algorithm, eps=1.0):
-    if algorithm == "floyd_warshall":
-        return floyd_warshall(graph)
-    
-    elif algorithm == "dp_floyd_warshall_input":
-        return dp_floyd_warshall_input_perturbation(graph, eps)
-    
-    elif algorithm == "dp_floyd_warshall_output":
-        return dp_floyd_warshall_output_perturbation(graph, eps)
-    
-    elif algorithm == "chen":
-        return bounded_weights(graph, eps)
-    
-    else:
-        raise ValueError("Unsupported algorithm specified.")
     
     
 def compute_accuracy(true_distances, calculated_distances):
@@ -46,9 +30,9 @@ def compute_accuracy(true_distances, calculated_distances):
     return mean_error, max_error
 
 
-def compute_time(graph, algorithm, eps=1.0):
+def compute_time(graph, function, *args, **kwargs):
     start = time.time()
-    distances = run_shortest_paths(graph, algorithm, eps)
+    distances = function(graph, *args, **kwargs)
     end = time.time()
     
     return end - start, distances
@@ -73,12 +57,12 @@ def read_graph_from_file(file_path):
     return adj
 
 
-def run_experiment(graph, epsilon_values, num_runs=1):
+def run_experiment(graph, epsilon_values, vertices, max_weight, num_runs=1):
     # Floyd-Warshall baseline (runtime and distances)
     fw_runtimes = []
     fw_distances = None
     for _ in range(num_runs):
-        t, d = compute_time(graph, "floyd_warshall")
+        t, d = compute_time(graph, floyd_warshall)
         fw_runtimes.append(t)
         fw_distances = d
 
@@ -103,7 +87,7 @@ def run_experiment(graph, epsilon_values, num_runs=1):
         dp_in_max_errors = []
 
         for _ in range(num_runs):
-            t, d = compute_time(graph, "dp_floyd_warshall_input", eps)
+            t, d = compute_time(graph, dp_floyd_warshall_input_perturbation, eps)
             m, M = compute_accuracy(fw_distances, d)
             dp_in_runtimes.append(t)
             dp_in_mean_errors.append(m)
@@ -123,7 +107,7 @@ def run_experiment(graph, epsilon_values, num_runs=1):
         dp_out_max_errors = []
 
         for _ in range(num_runs):
-            t, d = compute_time(graph, "dp_floyd_warshall_output", eps)
+            t, d = compute_time(graph, dp_floyd_warshall_output_perturbation, eps)
             m, M = compute_accuracy(fw_distances, d)
             dp_out_runtimes.append(t)
             dp_out_mean_errors.append(m)
@@ -142,7 +126,7 @@ def run_experiment(graph, epsilon_values, num_runs=1):
         chen_max_errors = []
 
         for _ in range(num_runs):
-            t, d = compute_time(graph, "dp_floyd_warshall_output", eps)
+            t, d = compute_time(graph, bounded_weights, epsilon=eps, A=max_weight, V=vertices)
             m, M = compute_accuracy(fw_distances, d)
             chen_runtimes.append(t)
             chen_mean_errors.append(m)
@@ -204,10 +188,12 @@ def plot_results(epsilon_values, results):
     plt.show()
 
 if __name__ == "__main__":
-    file = "./data/graph_10_200_0.2.txt"
+    file = "./data/graph_16_200_0.9.txt"
     graph = read_graph_from_file(file)
-    epsilon_values = [0.2, 0.5, 1, 2, 5, 10]
-
-    results = run_experiment(graph, epsilon_values, num_runs=5)
+    epsilon_values = [0.1, 0.2, 0.5, 1, 2, 5]
+    n = len(graph)
+    vertices = set(range(n))
+    max_weight = 200 
+    results = run_experiment(graph, epsilon_values, vertices=vertices, max_weight=max_weight, num_runs=5)
 
     plot_results(epsilon_values, results)
