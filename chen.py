@@ -1,16 +1,13 @@
 """
-Error is maximum difference between an entry in the output matrix and that entry approximated value
-** be careful of shallow copies **
+Written by Long Pham & James Bui
+Private All Pairs Shortest Path by Chen et. al
 """
 
 import math
 import copy
 import numpy as np
-import random
 import heapq
 
-# random.seed(36)
-# np.random.seed(36)
 INF = float('inf')
 
 """
@@ -25,7 +22,6 @@ return the matrix containing entrywise median of all matrices in the input
 n is size of each matrix
 """
 def matrix_median(matrices, n):
-    # print("MATRICES should not have any inf:", matrices)
     L = len(matrices)   # number of matrices
     mat_median = [[0 for _ in range(n)] for _ in range(n)]
     arr = np.array(matrices, dtype=float)   # shape (L, n, n)
@@ -83,13 +79,11 @@ def ball(G, v, r):
     while queue:
         current, dist = queue.pop(0)
         ball.add(current)
-        
         if dist < r:
             for neighbor in range(n):
                 if G[current][neighbor] == 1 and not visited[neighbor]:
                     visited[neighbor] = True
                     queue.append((neighbor, dist + 1))
-
     return ball
 
 
@@ -171,7 +165,7 @@ def dfs(G, u, dst, visited, path, paths, edge_color, r, b, g, rbound, bbound, gb
 
 
 """
-magical function that returns shortest path distance from src to dst in G. 
+returns shortest path distance from src to dst in G. 
 the path uses at most rbound red edges, bbound blue edges, and gbound green edges
 """
 def constrained_shortest_path(G, edge_color, src, dst, rbound, bbound, gbound):
@@ -241,8 +235,7 @@ def bounded_weights(G, V, A, epsilon):
     assert isinstance(V, set), "V must be a set"
 
     n = len(G)       # number of vertices in the original graph 
-    V_len = len(V)      # todo: replace n with V_len where count of active vertices is needed
-    # print("Vertices:", V)
+    V_len = len(V)      
 
     if len(V) == 0:
         raise Exception("Vertex set should not be empty")
@@ -250,15 +243,14 @@ def bounded_weights(G, V, A, epsilon):
     if len(V) == 1:         # BASE CASE, return INF distances
         return [[INF for _ in range(n)] for _ in range(n)]
 
-    # K = math.floor(100 * math.log(V_len, 10))
+    # K = math.floor(100 * math.log(V_len, 10))     # actual value used in the paper
     K = math.floor(1 * math.log(V_len, 10))
     T = V_len / ((A * epsilon * V_len) ** ((math.sqrt(17) - 3)/4))
     R = V_len / ((A * epsilon * V_len) ** ((5 - math.sqrt(17))/2))
-    # L = math.floor(100 * math.log(n, 10) * ((A * epsilon * V_len) ** ((math.sqrt(17) - 3)/4)))
-    L = math.floor(math.log(n, 10) * ((A * epsilon * V_len) ** ((math.sqrt(17) - 3)/4)))
-    # print("L, K:", L, K)
+    # L = math.floor(100 * math.log(n, 10) * ((A * epsilon * V_len) ** ((math.sqrt(17) - 3)/4)))        # actual value used in the paper
+    L = math.floor(1 * math.log(n, 10) * ((A * epsilon * V_len) ** ((math.sqrt(17) - 3)/4)))
 
-    H = get_topology(G)    # H is G but unweighted. H is public
+    H = get_topology(G)    # H is G but unweighted. H (the graph architecture) is public
 
     iterations = []     # contains result of each of the k iterations, used to find entrywise median to improve success probability
     for k in range(1, K+1):
@@ -268,17 +260,12 @@ def bounded_weights(G, V, A, epsilon):
         balls = []
         for v_t in V:    # for each vertex in H_prime
             ball_radius = len(ball(H_prime, v_t, 1*R* math.log(V_len, 10)))
-
-            # if ball_radius == V_len:                                          
-            #     continue
-
             # if the size of the ball around v_t less than T and the ball is nonempty (H_prime needs to shrink), take v_t
             if ball_radius == 0:    # ball_radius == 0 should never happen because will at least contain v_t
                 raise Exception("Ball should never be empty")
             if ball_radius > V_len:         
                 raise Exception("Ball should not be larger than the graph itself")
             if ball_radius > T:  
-                # print("Ball radius greater than T, ball skipped")   
                 continue
                 
             r_t = np.random.exponential(scale=1/R)      # r_t = Exp(R)
@@ -293,20 +280,18 @@ def bounded_weights(G, V, A, epsilon):
             # and processed in the next recursion depth WITH THE SAME SET OF NODES
             # thus the ball to be peeled off must be strictly smaller than the set of vertices
             if len(B_t) > 1 and len(B_t) == V_len:
-                # print("V len and B_t len equal")
                 continue
                                       
             balls.append(B_t)
             H_prime = peel(H_prime, B_t)        # Peel off ball around v_t
             t += 1
-        # print("Balls:", balls)
+
         medians = []            # list of M_t's
         for B_t in balls:
             matrices = []       # len(matrices) = K
             for l in range(1, K + 1):
                 subgr = subgraph(G, B_t)
-                M_t_l = bounded_weights(subgr, B_t, A, epsilon / (3*((1 * math.log(V_len, 10))**2)))
-                # print("M_t_l:", M_t_l)
+                M_t_l = bounded_weights(subgr, B_t, A, epsilon / (3*((1 * math.log(V_len, 10))**2)))        # recursively run on smaller balls
                 matrices.append(M_t_l)
 
             M_t = matrix_median(matrices, n)   # entrywise median of M_t_l over K     
@@ -327,11 +312,10 @@ def bounded_weights(G, V, A, epsilon):
                 v = V_list[j]
                 if G[u][v] != INF:
                     noise = np.random.laplace(0.0, scale = (3*K)/epsilon)
-                    # print("RED NOISE:", noise)
                     add_edge(G_til, u, v, G[u][v] + noise)  # add a red edge to G_til, input perturbation
                     edge_color[u,v] = edge_color[v,u] = "red"
         
-        # for all pairs u, v ∈ S (u = S[i], v = S[j])
+        # for all pairs u, v ∈ S
         for i in range(len(S)):
             for j in range(i+1, len(S)):
                 u = S[i]
@@ -340,11 +324,9 @@ def bounded_weights(G, V, A, epsilon):
                 # blue edge replaces sum of every edges from u to v. it will be as if there's one single edge from u to v     
                 if dist_u_v != INF:   
                     noise = np.random.laplace(0.0, scale = (10*K*L*L)/epsilon)   
-                    # print("BLUE NOISE:", noise)
                     add_edge(G_til, u, v, dist_u_v + noise) # add a blue edge to G_til, output-perturbation
                     edge_color[u,v] = edge_color[v,u] = "blue"
         
-        # print("Balls:", balls)
         # for each B_t
         for t in range(len(balls)):
             B_t = list(balls[t])
@@ -366,136 +348,6 @@ def bounded_weights(G, V, A, epsilon):
                 u = V_list[i]
                 v = V_list[j]
                 add_edge(output_apsp, u, v, constrained_shortest_path(G_til, edge_color, u, v, 
-                                                            math.floor(1*(R*math.log(n, 10) + T/R)), 1, math.floor(1*(T/R))) [0]) # dark magic
-        # print("OUTPUT APSP", output_apsp)
+                                                            math.floor(1*(R*math.log(n, 10) + T/R)), 1, math.floor(1*(T/R))) [0]) 
         iterations.append(output_apsp)
-    
     return matrix_median(iterations, n)    # return median over K iterations
-
-
-
-"""
-TESTING
-"""
-
-# def generate_graph(n, A, edge_prob):
-#     # Parameters: runtime changes with n/edge_bound proportion
-#     # Generate adjacency matrix with random weights and missing edges
-#     G = [[INF for _ in range(n)] for _ in range(n)]
-
-#     for u in range(n):
-#         for v in range(n):
-#             if u != v:
-#                 if random.random() < edge_prob:  # chance of edge existing
-#                     G[u][v] = G[v][u] = random.randint(1, A)
-#                 else:
-#                     G[u][v] = G[v][u] = INF
-#     return G
-
-# edge_prob = 0.6
-# n = 25
-
-# A1 = 100
-# A2 = 1000
-# A3 = 3000
-
-# G1 = generate_graph(n, A1, edge_prob)
-# G2 = generate_graph(n, A2, edge_prob)
-# G3 = generate_graph(n, A3, edge_prob)
-
-
-
-# filter inf
-# A = -INF  # start with smallest possible number
-# for row in G:
-#     for val in row:
-#         if math.isfinite(val):   # ignore inf or -inf
-#             A = max(A, val)
-
-# A = max(map(max, G))
-# epsilon = 0.1
-# mat1 = bounded_weights(G1, set(range(len(G1))), A1, epsilon)
-# mat2 = bounded_weights(G2, set(range(len(G2))), A2, epsilon)
-# mat3 = bounded_weights(G3, set(range(len(G3))), A3, epsilon)
-
-# n = len(mat1)
-# for i in range(n):
-#     for j in range(n):
-#         if mat1[i][j] != INF:
-#             mat1[i][j] = math.floor(mat1[i][j])
-
-# n = len(mat2)
-# for i in range(n):
-#     for j in range(n):
-#         if mat2[i][j] != INF:
-#             mat2[i][j] = math.floor(mat2[i][j])
-
-# n = len(mat3)
-# for i in range(n):
-#     for j in range(n):
-#         if mat3[i][j] != INF:
-#             mat3[i][j] = math.floor(mat3[i][j])
-
-
-# # print("TESTING:")  
-
-
-# def compute_accuracy(true_distances, calculated_distances):
-#     A = np.array(true_distances, dtype=float)
-#     B = np.array(calculated_distances, dtype=float)
-
-#     # Mask unreachable nodes
-#     # Consider only entries where both algorithms produced a valid distance
-#     mask = (A != INF) & (B != INF)
-
-#     if not np.any(mask):
-#         return 0.0, 0.0
-
-#     # print(A[mask])
-#     # print(B[mask])
-#     diff = np.abs(A[mask] - B[mask])
-
-#     mean_error = diff.mean()
-#     max_error = diff.max()
-
-#     return mean_error, max_error
-
-
-# def floyd_warshall(graph):
-#     """
-#     Computes shortest paths between all pairs of vertices using Floyd-Warshall algorithm.
-    
-#     Args:
-#         graph: Distance matrix (2D list) where graph[i][j] is the distance from i to j
-        
-#     Returns:
-#         distances: 2D list of shortest distances between all pairs
-#         paths: 2D list where paths[i][j] contains the sequence of vertices in the shortest path from i to j
-#     """
-    
-#     num_vertices = len(graph)
-    
-#     # Initialize distances and paths
-#     distances = [row[:] for row in graph]  # Copy of the distance matrix
-    
-#     # Floyd-Warshall algorithm
-#     for k in range(num_vertices):
-#         for i in range(num_vertices):
-#             for j in range(num_vertices):
-#                 if distances[i][k] == -1 or distances[k][j] == -1:
-#                     continue
-                
-#                 if  distances[i][j] == -1:
-#                     distances[i][j] = distances[i][k] + distances[k][j]
-                    
-#                 if distances[i][k] + distances[k][j] < distances[i][j]:
-#                     distances[i][j] = distances[i][k] + distances[k][j]
-    
-#     return distances
-
-
-
-# print("ACCURACY:")
-# # print(compute_accuracy(floyd_warshall(G1), mat1))
-# # print(compute_accuracy(floyd_warshall(G2), mat2))
-# # print(compute_accuracy(floyd_warshall(G3), mat3))
